@@ -1,16 +1,33 @@
 pragma solidity ^0.4.17;
 
+contract CampaignFactory {
+    address[] deployedCampaigns;
+
+    function createCampaign(uint minimum) public {
+        address newCampaign = new Campaign(minimum, msg.sender); //creates and deploys a new Campaign contract 
+        deployedCampaigns.push(newCampaign);
+    }
+
+    function getDeployedCampaigns() public view returns (address[]) {
+        return deployedCampaigns;
+    }
+}
+
+
 contract Campaign {
     struct Request { //this is a type definition not an instance of a struct 
         string description;
         uint value;
         address recipient;
         bool complete;
+        mapping(address => bool) approvals; //this is a reference type 
+        uint approvalCount; //this and other variables in struct are value types
     }
        
     address public manager;
     uint public minimumContribution;
-    address[] public approvers;
+    uint approversCount;
+    mapping(address => bool) public approvers;
     Request[] public requests;
 
     modifier restricted() {
@@ -18,25 +35,37 @@ contract Campaign {
         _;
     }
 
-    function Campaign(uint minimum) public {
-        manager = msg.sender;
+    function Campaign(uint minimum, address creator) public {
+        manager = creator;
         minimumContribution = minimum;
     }
 
     function contribute() public payable {
         require(msg.value > minimumContribution);
-        approvers.push(msg.sender);
+        approvers[msg.sender] = true; 
+        /*
+            adds key 'msg.sender' with value 'true'
+            the address corresponding to msg.sender does not actually get stored in the mapping
+            becausing mappings don't store keys
+            what is stored is a hash coressponding to an index which corresponds to value
+        */
+        approversCount++;
+
     }
 
     function createRequest(string description, uint value, address recipient) 
         public restricted {
+            //if wanted the person having created a request to have contributed to the campaign
+            //require(approvers[msg.sender])
+            //requires approvers[msg.sender] to return true
             
             //have to provide values for all the fields declared in the struct definition up top
             Request memory newRequest = Request({
                 description: description,
                 value: value,
                 recipient: recipient,
-                complete: false
+                complete: false,
+                approvalCount: 0
             });
             /*
                 have to use 'memory' when creating the Request because the only variables that can use
@@ -54,6 +83,29 @@ contract Campaign {
             */
 
             requests.push(newRequest);
+    }
+
+    function approveRequest(uint index) public {
+        Request storage request = requests[index];
+        //want to be looking at the same Request that exists in storage
+
+        require(approvers[msg.sender]);
+        require(!request.approvals[msg.sender]);
+
+        request.approvals[msg.sender] = true;
+        request.approvalCount++;
+    }
+
+    function finalizeRequest(uint index) public restricted {
+        Request storage request = requests[index];
+        
+        require(!request.complete);
+        require(request.approvalCount > (approversCount / 2));
+
+        request.recipient.transfer(request.value);
+        //I guess 'transfer' doesn't require the function to have payable modifier
+
+        request.complete = true;
     }
 
 }
