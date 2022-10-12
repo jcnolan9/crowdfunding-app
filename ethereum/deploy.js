@@ -3,7 +3,7 @@ const Web3 = require('web3');
 const compiledFactory = require('./build/CampaignFactory.json')
 
 const provider = new HDWalletProvider(
-  '',
+  'wonder globe aerobic combine way poem immense guilt frown marriage insane hover',
   // remember to change this to your own phrase!
   'https://goerli.infura.io/v3/1bccd90e53de4153b124fcf4fa6a5d2a'
   // remember to change this to your own endpoint!

@@ -108,6 +108,20 @@ contract Campaign {
         request.complete = true;
     }
 
+    function getSummary() public view returns (uint, uint, uint, uint, address) {
+        return (
+            minimumContribution,
+            this.balance, //how to get the balance of a contract
+            requests.length,
+            approversCount,
+            manager
+        );
+    }
+
+    function getRequestsCount() public view returns (uint) {
+        return requests.length;
+    }
+
 }
 
 /*
